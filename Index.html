@@ -371,6 +371,49 @@
             background: #1976D2;
         }
 
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            overflow-y: auto;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            border: 1px solid #333;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 30px;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .close-modal:hover {
+            color: #fff;
+        }
+
+        .modal h2 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
         @media (max-width: 600px) {
             .calculator {
                 padding: 25px;
@@ -421,6 +464,7 @@
         <div class="tabs">
             <div class="tab active" onclick="cambiarPestaña('calculadora')">Calculadora</div>
             <div class="tab" onclick="cambiarPestaña('reporte')">Reporte</div>
+            <div class="tab" onclick="cambiarPestaña('rentabilidad')">Rentabilidad</div>
         </div>
 
         <!-- PESTAÑA CALCULADORA -->
@@ -434,12 +478,28 @@
                         <option value="Venezuela">Venezuela</option>
                         <option value="Colombia">Colombia</option>
                         <option value="República Dominicana">República Dominicana</option>
+                        <option value="Otro">Otro (USD a USD)</option>
                     </select>
                 </div>
 
                 <div class="input-group">
                     <label>Monto Recibido (ANG)</label>
                     <input type="number" id="montoANG" placeholder="0.00" step="0.01" min="0">
+                </div>
+
+                <!-- CALCULADORA INVERSA -->
+                <div style="text-align: center; margin: 20px 0;">
+                    <div style="color: #888; font-size: 12px; margin-bottom: 10px;">O CALCULA AL REVÉS ⬇️</div>
+                </div>
+
+                <div class="input-group">
+                    <label>El cliente quiere recibir (en su moneda local)</label>
+                    <input type="number" id="montoRecibir" placeholder="Ej: 30000" step="0.01" min="0" oninput="calcularInverso()">
+                </div>
+
+                <div class="input-group" id="montoDebePayarGroup" style="display: none;">
+                    <label>💵 El cliente debe pagar</label>
+                    <input type="text" id="montoDebePagar" readonly style="background: #1a3a1a; color: #4CAF50; font-size: 20px; font-weight: 700; text-align: center;">
                 </div>
 
                 <!-- RESULTADOS -->
@@ -475,7 +535,7 @@
                     </div>
                 </div>
 
-                <button class="btn-save" onclick="guardarTransaccion()">💾 Guardar Transacción</button>
+                <button class="btn-save" onclick="mostrarOpcionesPago()">💾 Guardar Transacción</button>
                 <button class="btn-clear" onclick="limpiar()">🔄 Limpiar</button>
             </div>
         </div>
@@ -495,12 +555,19 @@
                 <!-- ESTADÍSTICAS -->
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-label">Ganancia Hoy</div>
+                        <div class="stat-label">Ganancia Hoy (USD)</div>
                         <div class="stat-value">$<span id="gananciaHoy">0.00</span></div>
+                        <div style="color: #888; font-size: 14px; margin-top: 5px;"><span id="gananciaHoyANG">0.00</span> ANG</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Ganancia Este Mes</div>
+                        <div class="stat-label">Ganancia Este Mes (USD)</div>
                         <div class="stat-value">$<span id="gananciaMes">0.00</span></div>
+                        <div style="color: #888; font-size: 14px; margin-top: 5px;"><span id="gananciaMesANG">0.00</span> ANG</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Créditos Pendientes</div>
+                        <div class="stat-value" style="color: #FF9800;"><span id="creditosPendientes">0</span></div>
+                        <div style="color: #888; font-size: 14px; margin-top: 5px;">💰 <span id="montoCreditosANG">0.00</span> ANG</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Total Transacciones</div>
@@ -515,6 +582,79 @@
                 <button class="btn-clear-data" onclick="borrarTodo()">🗑️ Borrar Todos los Datos</button>
             </div>
         </div>
+
+        <!-- PESTAÑA RENTABILIDAD -->
+        <div id="rentabilidad" class="tab-content">
+            <div class="report-section">
+                <h2 style="color: #4CAF50; margin-bottom: 20px;">📈 Rentabilidad por Día</h2>
+                
+                <div class="stats-grid" style="margin-bottom: 30px;">
+                    <div class="stat-card">
+                        <div class="stat-label">Mejor Día del Mes</div>
+                        <div class="stat-value" style="color: #4CAF50;">$<span id="mejorDia">0.00</span></div>
+                        <div style="color: #888; font-size: 14px; margin-top: 5px;"><span id="fechaMejorDia">-</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Promedio Diario</div>
+                        <div class="stat-value">$<span id="promedioDiario">0.00</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total del Mes</div>
+                        <div class="stat-value" style="color: #2196F3;">$<span id="totalMes">0.00</span></div>
+                    </div>
+                </div>
+
+                <h3 style="color: #4CAF50; margin-bottom: 15px;">Desglose Diario</h3>
+                <div id="rentabilidadDiaria"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Opciones de Pago -->
+    <div class="modal" id="opcionesPagoModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="cerrarModalPago()">&times;</span>
+            <h2>💰 ¿Cómo se pagó esta transacción?</h2>
+            
+            <div class="btn-group" style="margin-top: 20px; flex-direction: column;">
+                <button class="btn btn-primary" onclick="guardarTransaccion('pagada')" style="width: 100%; margin-bottom: 10px;">
+                    ✅ PAGADA (Cliente pagó)
+                </button>
+                <button class="btn" onclick="mostrarFormularioCredito()" style="width: 100%; background: #FF9800; color: white;">
+                    💳 CRÉDITO (Cliente debe pagar)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Formulario de Crédito -->
+    <div class="modal" id="creditoModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="cerrarModalCredito()">&times;</span>
+            <h2>💳 Datos del Crédito</h2>
+            
+            <div class="form-group" style="margin-top: 20px;">
+                <label>Nombre del Cliente *</label>
+                <input type="text" id="nombreClienteCredito" placeholder="Nombre completo">
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="aplicarInteresCredito" onchange="actualizarMontoCredito()">
+                    <span>Aplicar 10% adicional por crédito</span>
+                </label>
+            </div>
+
+            <div class="form-group" id="montoConInteresGroup" style="display: none;">
+                <label>💵 Monto Total a Cobrar (con 10% adicional)</label>
+                <input type="text" id="montoTotalCredito" readonly style="background: #1a3a1a; color: #FF9800; font-size: 20px; font-weight: 700; text-align: center;">
+            </div>
+
+            <div class="btn-group" style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="guardarTransaccion('credito')">💾 Guardar Crédito</button>
+                <button class="btn btn-secondary" onclick="cerrarModalCredito()">Cancelar</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -526,14 +666,16 @@
         let tasas = {
             'Venezuela': 0,
             'Colombia': 0,
-            'República Dominicana': 0
+            'República Dominicana': 0,
+            'Otro': 1.0  // USD a USD = 1:1
         };
 
         // MONEDAS POR PAÍS
         const monedas = {
             'Venezuela': 'Bs',
             'Colombia': 'COP',
-            'República Dominicana': 'DOP'
+            'República Dominicana': 'DOP',
+            'Otro': 'USD'
         };
 
         // ELEMENTOS
@@ -557,6 +699,9 @@
                 tasas = JSON.parse(tasasGuardadas);
             }
             
+            // "Otro" siempre tiene tasa fija 1.0 (USD a USD)
+            tasas['Otro'] = 1.0;
+            
             document.getElementById('tasaVenezuela').value = tasas['Venezuela'] || 0;
             document.getElementById('tasaColombia').value = tasas['Colombia'] || 0;
             document.getElementById('tasaDominicana').value = tasas['República Dominicana'] || 0;
@@ -567,6 +712,7 @@
             tasas['Venezuela'] = parseFloat(document.getElementById('tasaVenezuela').value) || 0;
             tasas['Colombia'] = parseFloat(document.getElementById('tasaColombia').value) || 0;
             tasas['República Dominicana'] = parseFloat(document.getElementById('tasaDominicana').value) || 0;
+            tasas['Otro'] = 1.0; // Siempre fijo (USD a USD)
             
             localStorage.setItem('russoTasas', JSON.stringify(tasas));
             calcular();
@@ -611,12 +757,23 @@
             if (pestaña === 'reporte') {
                 actualizarReporte();
             }
+            
+            // Si es rentabilidad, generar reporte
+            if (pestaña === 'rentabilidad') {
+                generarRentabilidad();
+            }
         }
 
         // FUNCIÓN DE CÁLCULO
         function calcular() {
             const pais = paisSelect.value;
             const montoANG = parseFloat(montoInput.value) || 0;
+
+            // Limpiar calculadora inversa cuando se usa la normal
+            if (montoANG > 0) {
+                document.getElementById('montoRecibir').value = '';
+                document.getElementById('montoDebePayarGroup').style.display = 'none';
+            }
 
             // Actualizar país
             paisMostrar.textContent = pais || '-';
@@ -649,14 +806,23 @@
             usdMostrar.textContent = montoUSD.toFixed(2);
             comisionMostrar.textContent = comisionUSD.toFixed(2);
             quedaMostrar.textContent = meQuedaUSD.toFixed(2);
-            totalCliente.textContent = totalClienteCalc.toFixed(2);
-            monedaCliente.textContent = monedaPais;
+            
+            // MOSTRAR TOTAL CLIENTE (aunque sea 0, mostrar el país)
+            if (tasaPais > 0) {
+                totalCliente.textContent = totalClienteCalc.toFixed(2);
+                monedaCliente.textContent = monedaPais;
+            } else {
+                totalCliente.textContent = '0.00';
+                monedaCliente.textContent = monedaPais + ' (⚠️ Configura la tasa)';
+            }
         }
 
         // FUNCIÓN LIMPIAR
         function limpiar() {
             paisSelect.value = '';
             montoInput.value = '';
+            document.getElementById('montoRecibir').value = '';
+            document.getElementById('montoDebePayarGroup').style.display = 'none';
             paisMostrar.textContent = '-';
             montoMostrar.textContent = '0.00';
             usdMostrar.textContent = '0.00';
@@ -666,13 +832,100 @@
             monedaCliente.textContent = '';
         }
 
+        // FUNCIÓN CALCULAR INVERSO
+        function calcularInverso() {
+            const pais = paisSelect.value;
+            const montoRecibir = parseFloat(document.getElementById('montoRecibir').value) || 0;
+
+            // Limpiar campo normal cuando se usa inverso
+            if (montoRecibir > 0) {
+                montoInput.value = '';
+            }
+
+            if (!pais || montoRecibir <= 0) {
+                document.getElementById('montoDebePayarGroup').style.display = 'none';
+                return;
+            }
+
+            const tasaPais = tasas[pais] || 0;
+            
+            if (tasaPais <= 0) {
+                alert('⚠️ Por favor configura la tasa para ' + pais);
+                document.getElementById('montoDebePayarGroup').style.display = 'none';
+                return;
+            }
+
+            // CÁLCULO INVERSO:
+            // montoRecibir = meQuedaUSD * tasa
+            // meQuedaUSD = montoRecibir / tasa
+            const meQuedaUSD = montoRecibir / tasaPais;
+            
+            // meQuedaUSD = montoUSD - comision
+            // meQuedaUSD = montoUSD - (montoUSD * 0.10)
+            // meQuedaUSD = montoUSD * 0.90
+            // montoUSD = meQuedaUSD / 0.90
+            const montoUSD = meQuedaUSD / 0.90;
+            
+            // Convertir USD a ANG
+            const montoANG = montoUSD * USD_TO_ANG;
+
+            // Mostrar resultado
+            const monedaPais = monedas[pais] || '';
+            document.getElementById('montoDebePagar').value = `${montoANG.toFixed(2)} ANG (${montoUSD.toFixed(2)} USD)`;
+            document.getElementById('montoDebePayarGroup').style.display = 'block';
+        }
+
         // FUNCIÓN GUARDAR TRANSACCIÓN
-        function guardarTransaccion() {
+        function mostrarOpcionesPago() {
             const pais = paisSelect.value;
             const montoANG = parseFloat(montoInput.value) || 0;
 
             if (!pais || montoANG <= 0) {
                 alert('⚠️ Selecciona un país e ingresa un monto válido');
+                return;
+            }
+
+            // Mostrar modal de opciones
+            document.getElementById('opcionesPagoModal').style.display = 'flex';
+        }
+
+        function cerrarModalPago() {
+            document.getElementById('opcionesPagoModal').style.display = 'none';
+        }
+
+        function mostrarFormularioCredito() {
+            document.getElementById('opcionesPagoModal').style.display = 'none';
+            document.getElementById('creditoModal').style.display = 'flex';
+            actualizarMontoCredito();
+        }
+
+        function cerrarModalCredito() {
+            document.getElementById('creditoModal').style.display = 'none';
+            document.getElementById('nombreClienteCredito').value = '';
+            document.getElementById('aplicarInteresCredito').checked = false;
+            document.getElementById('montoConInteresGroup').style.display = 'none';
+        }
+
+        function actualizarMontoCredito() {
+            const aplicarInteres = document.getElementById('aplicarInteresCredito').checked;
+            const montoANG = parseFloat(montoInput.value) || 0;
+            
+            if (aplicarInteres) {
+                const montoConInteres = montoANG * 1.10;
+                const montoUSDConInteres = montoConInteres / USD_TO_ANG;
+                document.getElementById('montoTotalCredito').value = `${montoConInteres.toFixed(2)} ANG (${montoUSDConInteres.toFixed(2)} USD)`;
+                document.getElementById('montoConInteresGroup').style.display = 'block';
+            } else {
+                document.getElementById('montoConInteresGroup').style.display = 'none';
+            }
+        }
+
+        function guardarTransaccion(tipoPago) {
+            const pais = paisSelect.value;
+            const montoANG = parseFloat(montoInput.value) || 0;
+
+            if (!pais || montoANG <= 0) {
+                alert('⚠️ Datos incompletos');
                 return;
             }
 
@@ -682,6 +935,26 @@
             const meQuedaUSD = montoUSD - comisionUSD;
             const tasaPais = tasas[pais] || 0;
             const totalClienteCalc = meQuedaUSD * tasaPais;
+
+            // Datos específicos de crédito
+            let esCredito = tipoPago === 'credito';
+            let nombreCliente = '';
+            let montoACobrar = montoANG;
+            let aplicoInteres = false;
+
+            if (esCredito) {
+                nombreCliente = document.getElementById('nombreClienteCredito').value.trim();
+                
+                if (!nombreCliente) {
+                    alert('⚠️ Ingresa el nombre del cliente para el crédito');
+                    return;
+                }
+
+                aplicoInteres = document.getElementById('aplicarInteresCredito').checked;
+                if (aplicoInteres) {
+                    montoACobrar = montoANG * 1.10;
+                }
+            }
 
             const transaccion = {
                 id: Date.now(),
@@ -694,13 +967,28 @@
                 meQueda: meQuedaUSD,
                 tasa: tasaPais,
                 totalCliente: totalClienteCalc,
-                moneda: monedas[pais]
+                moneda: monedas[pais],
+                tipoPago: tipoPago,
+                esCredito: esCredito,
+                nombreCliente: nombreCliente,
+                montoACobrar: montoACobrar,
+                aplicoInteres: aplicoInteres,
+                pagado: !esCredito
             };
 
             transacciones.push(transaccion);
             localStorage.setItem('russoTransacciones', JSON.stringify(transacciones));
 
-            alert('✅ Transacción guardada');
+            // Cerrar modales
+            cerrarModalPago();
+            cerrarModalCredito();
+
+            if (esCredito) {
+                alert(`✅ Crédito registrado para: ${nombreCliente}\n💵 Monto a cobrar: ${montoACobrar.toFixed(2)} ANG`);
+            } else {
+                alert('✅ Transacción guardada como PAGADA');
+            }
+            
             limpiar();
         }
 
@@ -714,16 +1002,29 @@
             const transaccionesHoy = transacciones.filter(t => new Date(t.fecha) >= inicioHoy);
             const transaccionesMes = transacciones.filter(t => new Date(t.fecha) >= inicioMes);
 
-            // Calcular ganancias
+            // Calcular ganancias en USD
             const gananciaHoy = transaccionesHoy.reduce((sum, t) => sum + t.ganancia, 0);
             const gananciaMes = transaccionesMes.reduce((sum, t) => sum + t.ganancia, 0);
 
+            // Convertir a ANG
+            const gananciaHoyANG = gananciaHoy * USD_TO_ANG;
+            const gananciaMesANG = gananciaMes * USD_TO_ANG;
+
+            // Calcular créditos pendientes (TODOS, sin filtro de fecha)
+            const creditosPendientes = transacciones.filter(t => t.esCredito && !t.pagado);
+            const montoCreditosANG = creditosPendientes.reduce((sum, t) => sum + (t.montoACobrar || t.montoANG), 0);
+
             // Actualizar estadísticas
             document.getElementById('gananciaHoy').textContent = gananciaHoy.toFixed(2);
+            document.getElementById('gananciaHoyANG').textContent = gananciaHoyANG.toFixed(2);
             document.getElementById('gananciaMes').textContent = gananciaMes.toFixed(2);
+            document.getElementById('gananciaMesANG').textContent = gananciaMesANG.toFixed(2);
+            document.getElementById('creditosPendientes').textContent = creditosPendientes.length;
+            document.getElementById('montoCreditosANG').textContent = montoCreditosANG.toFixed(2);
             document.getElementById('totalTransacciones').textContent = transacciones.length;
 
-            // Mostrar transacciones
+            // Mostrar TODAS las transacciones (sin filtro de fecha)
+            // Los créditos pendientes siempre se verán aquí
             mostrarTransacciones(transacciones);
         }
 
@@ -742,15 +1043,50 @@
             container.innerHTML = ordenadas.map(t => {
                 const fecha = new Date(t.fecha);
                 const fechaStr = fecha.toLocaleDateString('es-ES') + ' ' + fecha.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'});
+                const gananciaANG = t.ganancia * USD_TO_ANG;
+                
+                // Mostrar estado de crédito
+                let estadoPago = '';
+                let botonPagar = '';
+                
+                if (t.esCredito && !t.pagado) {
+                    // Crédito PENDIENTE - NOMBRE MÁS GRANDE
+                    estadoPago = `<div style="color: #FF9800; font-size: 18px; font-weight: 700; margin: 5px 0;">💳 ${t.nombreCliente}</div>`;
+                    estadoPago += `<div style="color: #FF9800; font-size: 12px; font-weight: 600;">CRÉDITO PENDIENTE</div>`;
+                    if (t.aplicoInteres) {
+                        estadoPago += `<div style="color: #FF9800; font-size: 11px;">A cobrar: ${t.montoACobrar.toFixed(2)} ANG (con 10%)</div>`;
+                    } else {
+                        estadoPago += `<div style="color: #FF9800; font-size: 11px;">A cobrar: ${t.montoACobrar.toFixed(2)} ANG</div>`;
+                    }
+                    // Botón para marcar como pagado
+                    botonPagar = `<button onclick="marcarComoPagado(${t.id})" style="background: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-top: 5px; font-size: 11px; font-weight: 600;">✅ MARCAR PAGADO</button>`;
+                } else if (t.esCredito && t.pagado) {
+                    // Crédito YA PAGADO
+                    estadoPago = `<div style="color: #4CAF50; font-size: 16px; font-weight: 700; margin: 5px 0;">✅ ${t.nombreCliente}</div>`;
+                    estadoPago += `<div style="color: #4CAF50; font-size: 12px; font-weight: 600;">CRÉDITO PAGADO</div>`;
+                    if (t.aplicoInteres) {
+                        estadoPago += `<div style="color: #888; font-size: 11px;">Cobrado: ${t.montoACobrar.toFixed(2)} ANG (con 10%)</div>`;
+                    } else {
+                        estadoPago += `<div style="color: #888; font-size: 11px;">Cobrado: ${t.montoACobrar.toFixed(2)} ANG</div>`;
+                    }
+                } else {
+                    // Transacción normal PAGADA
+                    estadoPago = `<div style="color: #4CAF50; font-size: 12px; font-weight: 600;">✅ PAGADA</div>`;
+                }
 
                 return `
                     <div class="transaction-item">
                         <div class="transaction-info">
                             <div class="transaction-date">${fechaStr}</div>
                             <div class="transaction-country">${t.pais}</div>
+                            ${estadoPago}
+                            ${botonPagar}
                             <div class="transaction-amount">${t.montoANG.toFixed(2)} ANG → ${t.totalCliente.toFixed(2)} ${t.moneda}</div>
                         </div>
-                        <div class="transaction-profit">+$${t.ganancia.toFixed(2)}</div>
+                        <div class="transaction-profit">
+                            <div>+$${t.ganancia.toFixed(2)}</div>
+                            <div style="font-size: 14px; color: #888;">${gananciaANG.toFixed(2)} ANG</div>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -776,12 +1112,13 @@
             });
 
             const gananciaFiltrada = filtradas.reduce((sum, t) => sum + t.ganancia, 0);
+            const gananciaFiltradaANG = gananciaFiltrada * USD_TO_ANG;
             
             // Actualizar solo el total de transacciones y mostrar lista filtrada
             document.getElementById('totalTransacciones').textContent = filtradas.length;
             mostrarTransacciones(filtradas);
             
-            alert(`📊 Ganancia en período seleccionado: $${gananciaFiltrada.toFixed(2)}`);
+            alert(`📊 Ganancia en período seleccionado:\n💵 $${gananciaFiltrada.toFixed(2)} USD\n💵 ${gananciaFiltradaANG.toFixed(2)} ANG`);
         }
 
         // FUNCIÓN BORRAR TODO
@@ -794,6 +1131,108 @@
             localStorage.removeItem('russoTransacciones');
             actualizarReporte();
             alert('✅ Todos los datos han sido borrados');
+        }
+
+        // FUNCIÓN MARCAR CRÉDITO COMO PAGADO
+        function marcarComoPagado(id) {
+            const transaccion = transacciones.find(t => t.id === id);
+            
+            if (!transaccion) {
+                alert('⚠️ Transacción no encontrada');
+                return;
+            }
+
+            if (confirm(`¿Marcar como PAGADO el crédito de ${transaccion.nombreCliente}?\n💵 Monto: ${transaccion.montoACobrar.toFixed(2)} ANG`)) {
+                transaccion.pagado = true;
+                localStorage.setItem('russoTransacciones', JSON.stringify(transacciones));
+                actualizarReporte();
+                alert('✅ Crédito marcado como PAGADO');
+            }
+        }
+
+        // FUNCIÓN GENERAR RENTABILIDAD
+        function generarRentabilidad() {
+            // Agrupar transacciones por día
+            const gananciasPorDia = {};
+            
+            transacciones.forEach(t => {
+                const fecha = new Date(t.fecha);
+                const diaKey = fecha.toISOString().split('T')[0]; // YYYY-MM-DD
+                
+                if (!gananciasPorDia[diaKey]) {
+                    gananciasPorDia[diaKey] = {
+                        fecha: diaKey,
+                        gananciaUSD: 0,
+                        gananciaANG: 0,
+                        transacciones: 0
+                    };
+                }
+                
+                gananciasPorDia[diaKey].gananciaUSD += t.ganancia;
+                gananciasPorDia[diaKey].gananciaANG += t.ganancia * USD_TO_ANG;
+                gananciasPorDia[diaKey].transacciones += 1;
+            });
+
+            // Convertir a array y ordenar por fecha descendente
+            const diasArray = Object.values(gananciasPorDia).sort((a, b) => 
+                new Date(b.fecha) - new Date(a.fecha)
+            );
+
+            // Calcular estadísticas
+            const totalMes = diasArray.reduce((sum, d) => sum + d.gananciaUSD, 0);
+            const promedioDiario = diasArray.length > 0 ? totalMes / diasArray.length : 0;
+            const mejorDiaObj = diasArray.length > 0 ? diasArray.reduce((max, d) => 
+                d.gananciaUSD > max.gananciaUSD ? d : max
+            ) : null;
+
+            // Actualizar estadísticas
+            document.getElementById('totalMes').textContent = totalMes.toFixed(2);
+            document.getElementById('promedioDiario').textContent = promedioDiario.toFixed(2);
+            
+            if (mejorDiaObj) {
+                document.getElementById('mejorDia').textContent = mejorDiaObj.gananciaUSD.toFixed(2);
+                const fechaFormateada = new Date(mejorDiaObj.fecha).toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                document.getElementById('fechaMejorDia').textContent = fechaFormateada;
+            } else {
+                document.getElementById('mejorDia').textContent = '0.00';
+                document.getElementById('fechaMejorDia').textContent = '-';
+            }
+
+            // Mostrar desglose diario
+            const container = document.getElementById('rentabilidadDiaria');
+            
+            if (diasArray.length === 0) {
+                container.innerHTML = '<div class="no-data">No hay datos de rentabilidad</div>';
+                return;
+            }
+
+            container.innerHTML = diasArray.map(dia => {
+                const fecha = new Date(dia.fecha);
+                const fechaStr = fecha.toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                return `
+                    <div class="transaction-item" style="background: #0a0a0a;">
+                        <div class="transaction-info">
+                            <div class="transaction-date" style="font-size: 14px; font-weight: 600;">${fechaStr}</div>
+                            <div style="color: #888; font-size: 12px; margin-top: 5px;">${dia.transacciones} transacción${dia.transacciones > 1 ? 'es' : ''}</div>
+                        </div>
+                        <div class="transaction-profit">
+                            <div style="color: #4CAF50; font-size: 20px;">+$${dia.gananciaUSD.toFixed(2)}</div>
+                            <div style="font-size: 14px; color: #888;">${dia.gananciaANG.toFixed(2)} ANG</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         // Inicializar
